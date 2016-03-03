@@ -2,23 +2,9 @@
 	
 # download mp3 files from archive.org by parsing the m3u playlist file embedded in the concert page
 #
-# changelog:
-# 2014-08-23 - fixed issue with relative vs. absolute URLs in HTML referencing M3U files
-#              added support for https, regex cleanup
-# 2012-06-04 - fixed an issue with m3u urls http://archive.org vs. http://www.archive.org
-# 2011-02-22 - output folder based on name of album
-#            - handle files without id3 tags better
-# 2011-02-21 - fixed issue with multiple m3u files being included in the same line of html
-#            - added renaming of files based on id3v1 tags.  now requires that MP3::Tag module is installed
-#              which can be installed by issuing the following commands at the command line:
-#                shell> sudo perl -MCPAN -e shell
-#                cpan> install MP3::Tag
-#
-#
-# use MP3::Tag;	 i've struggled with this on OSX, so for now, ID3 tagging functionality is disabled.
 use URI;
 
-$outputdir = $ENV{HOME} . "/Desktop";
+$outputdir = ".";
 @orphanfiles;  # array to hold files not automatically moved via id3 tags
 $useragent="iTunes/9.1.1"; # fly under the radar with fake user agent string
 $outputfolder = ""; # the subdirectory to put files into
@@ -42,6 +28,7 @@ my $clurl = URI->new( $url );
 my $domain = $clurl->host;
 my $scheme = $clurl->scheme;
 my $path = $clurl->path;
+my $url_filename = ($clurl->path_segments)[-1];
 
 # parse show's html source and isolate line containing link to m3u playlist file(s)
 print "Looking for .m3u references in the raw HTML...\n";
@@ -102,6 +89,31 @@ if (!($bestm3uversion =~ /^http/))
 	$bestm3uversion = $absolute;
 	print "Converted to absolute URL: $bestm3uversion\n";
 }
+
+
+# now, decide to download .m3u playlist, or actually download all of the mp3s
+print "\nChoose download option\n";
+print "  1 = Download .m3u playlist\n";
+print "  2 = Download mp3s\n";
+print "  0 = Cancel\n";
+$op = <STDIN>;
+chomp($op);
+
+if ($op == 1)
+{
+  # download m3u only
+  system("curl --silent --user-agent '$useragent' --location $bestm3uversion --output \"./${url_filename}.m3u\"");
+  print "\n\n*************************************\n";
+  print "Download of ${url_filename}.m3u complete.\n";
+  print "Happy Listening!\n\n";
+  exit(0);
+}
+elsif ($op != 2)
+{
+  print "Exiting\n\n";
+  exit(0);
+}
+
 
 # finally, read each individual URL listed in the best m3u playlist file
 # and download it.  note the use of the --location switch to deal with http 302 redirects
