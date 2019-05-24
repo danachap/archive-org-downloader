@@ -154,7 +154,7 @@ exit(0);
 
 
 
-############################ subrountines ############################
+############################ subroutines ############################
 sub renameFileFromID3Tags {
 	$filename = $_[0];
 	$songcount = $_[1];
